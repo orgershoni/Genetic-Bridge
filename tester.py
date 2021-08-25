@@ -56,10 +56,13 @@ edges_idx_pairs = []
 #     plot_triangle(coors_plot_series)
 
 
+from EvolutionRunner import run_manager, BuildingBlockPopulation
 
-bridge = Bridge.GeneticBridge()
-bridge.plot()
+# bridge = Bridge.GeneticBridge(BuildingBlockPopulation(30))
+# bridge.plot_with_target()
+# bridge.change_bridge_size(bridge.size - 3)
 
+run_manager()
 
 # long_edges = []
 # edges_b = []

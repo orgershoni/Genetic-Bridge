@@ -38,6 +38,18 @@ class BuildingBlock:
     def get_angels(self):
         return self.angels
 
+    def get_fitness(self):
+
+        return self.calc_area()
+
+    def calc_area(self):
+
+        angle_a = self.angels[0]
+        edge_b = self.edges_length[1]
+        edge_c = self.edges_length[2]
+
+        return (edge_b * edge_c) * np.sin(np.deg2rad(angle_a)) / 2
+
 
 class BuildingBlockHolder:
 
@@ -89,6 +101,10 @@ class BuildingBlockHolder:
         pts = np.array([[x_a, y_a], [x_b, y_b], [x_c, y_c]])
 
         return pts
+
+    def set_pivot(self):
+
+        self.coors = self.get_polygon()
 
     def __get_angle(self, v1, v2):
         # calc tilt
@@ -173,6 +189,9 @@ class BuildingBlockHolder:
 
     def set_aligned(self):
         self.is_aligned = True
+
+    def get_fitness(self):
+        return self.triangle.get_fitness()
 
 #####
 # This code block is inspired by stackoverflow
