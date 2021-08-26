@@ -174,6 +174,9 @@ class GeneticBridge:
     def get_end_point(self):
 
         last_triangle: BuildingBlockHolder = self.ordered_building_blocks[-1]
+        if len(self.edges_pairs) == 0:
+            return np.array([0, 0])
+
         joint_edge_of_last_triangle = self.edges_pairs[-1][1]
 
         coors_indices = last_triangle.get_edge_coors_indices(

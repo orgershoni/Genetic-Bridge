@@ -213,6 +213,7 @@ def single_model_runner(generation_num, population_size, selection_type
 
     for idx in tqdm.tqdm(range(generation_num)):
         # gather stats
+
         dists = np.array([bridge.get_dist_from_target() for bridge in bridges])
 
         distance_from_target = dists.min()
@@ -510,7 +511,7 @@ def quest_6():
 
 def run_manager():
     # quest_1()
-    quest_3()
-    quest_4()
+    # quest_3()
+    # quest_4()
     quest_5()
     quest_6()
