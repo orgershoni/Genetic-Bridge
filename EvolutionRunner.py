@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os.path as path
 import os
+import tqdm
 
 TOURNAMENT = "Tournament"
 ROULETTE_WHEEL = "Roulette Wheel"
@@ -20,7 +21,7 @@ VAR_ELITA = "Elita factor"
 
 SIZE_VARIANCE_IN_MUTATION = 3
 ANGLE_MAX_VAL = 178
-ANGLE_VAR_IN_MUTATION = 20
+ANGLE_VAR_IN_MUTATION = 10
 EDGE_VARIANCE_IN_MUTATION = 3
 ANGLE_MIN_VAL = 1
 EDGE_MIN_VAL = 1
@@ -187,6 +188,7 @@ def apply_selection(population, selection_type, N_e, s=0):
 
 def single_model_runner(generation_num, population_size, selection_type
                         , mutation_p, N_e, output_path, s=0):
+
     BB_population = BuildingBlockPopulation(population_size)
     bridges = BridgesPopulation(population_size, BB_population).population
 
@@ -194,7 +196,22 @@ def single_model_runner(generation_num, population_size, selection_type
     mean_dist_from_target = []
     unique_variants_num = []
 
-    for idx in range(generation_num):
+    txt = [r'$\mathbf{MODEL\:PARAMETERS}$', "\n"
+           r"$\mathit{Population\:size} :$" + str(population_size),
+           r"$\mathit{Mutation\:rate} :$" + str(mutation_p),
+           r"$\mathit{Elitism\:parameter}: N_e=$" + str(N_e),
+           r"$\mathit{Selection\:type} :$" + selection_type,
+           r"$\mathit{Tournament\:parameter}: s=$" + str(s)]
+
+    print("#" * 100)
+    print("Started evolution simulation with the following params :" +
+          "\nPopulation size :" + str(population_size) +
+          "\nMutation rate :" + str(mutation_p) +
+          "\nElitism parameter: N_e= " + str(N_e) +
+          "\nSelection type :" + selection_type +
+          "\nTournament parameter: s=" + str(s) + "\n")
+
+    for idx in tqdm.tqdm(range(generation_num)):
         # gather stats
         dists = np.array([bridge.get_dist_from_target() for bridge in bridges])
 
@@ -222,12 +239,8 @@ def single_model_runner(generation_num, population_size, selection_type
                   f" Skipping this generation. Error info : {e}")
             bridges = bridges_before_this_generation
 
-    txt = [r'$\mathbf{MODEL\:PARAMETERS}$', "\n"
-           r"$\mathit{Population\:size} :$" + str(population_size),
-           r"$\mathit{Mutation\:rate} :$" + str(mutation_p),
-           r"$\mathit{Elitism\:parameter}: N_e=$" + str(N_e),
-           r"$\mathit{Selection\:type} :$" + selection_type,
-           r"$\mathit{Tournament\:parameter}: s=$" + str(s)]
+    print("Evolution finished")
+    print("#" * 100)
 
     return unpack_results(
         [min_dist_from_target, mean_dist_from_target,
@@ -243,6 +256,7 @@ def refactor_txt(var_name, txt: list):
         del txt[1]
 
     return '\n'.join(txt)
+
 
 def unpack_results(tuple4way):
     data = [tuple4way[0], tuple4way[1], tuple4way[2]]
@@ -376,15 +390,15 @@ def plot_results(data, variable_ranges, var_name, txt):
     combine_plots(axes, data, variable_ranges)
 
     # set titles
-    y_labels = ["Trajectory length (Euclidean distance)",
-                "Trajectory length (Euclidean distance)",
+    y_labels = ["Distance from target (Euclidean distance)",
+                "Distance from target (Euclidean distance)",
                 "Unique variants number"]
-    titles = ["Minimum trajectory length",
-              "Mean trajectory length",
+    titles = ["Minimum distance from target",
+              "Mean distance from target",
               "Unique variants number"]
 
     for idx, ax in enumerate(axes):
-        ax.set_xlabel("iter #")
+        ax.set_xlabel("generation #")
         ax.set_ylabel(y_labels[idx])
         ax.set_title(titles[idx])
 
@@ -392,7 +406,8 @@ def plot_results(data, variable_ranges, var_name, txt):
     y_place = max([max(inner_data) for inner_data in data[0]]) * 1.1
     axes[0].text(x_place, y_place, refactor_txt(var_name, txt), bbox=props,
                  verticalalignment='bottom')
-    plt.suptitle("Trajectory length and unique variants number by iter#")
+    plt.suptitle("Distance from target and unique variants number by "
+                 "generation#")
 
     if len(variable_ranges) > 1:
         plt.legend(title=var_name)
@@ -426,18 +441,18 @@ def quest_1():
                          var_name=VAR_POPULATION_SIZE)
 
 
-def quest_2():
-    # Question 2
-    population_sizes = [30, 100, 300]
-    plot_results_manager(generation_num=100,
-                         population_size=0,  # Would be filled using
-                                             # var_range param
-                         selection_type=ROULETTE_WHEEL,
-                         mutation_rate=0,
-                         N_e=0,
-                         s=0,
-                         var_range=population_sizes,
-                         var_name=VAR_POPULATION_SIZE)
+# def quest_2():
+#     # Question 2
+#     population_sizes = [30, 100, 300]
+#     plot_results_manager(generation_num=100,
+#                          population_size=0,  # Would be filled using
+#                                              # var_range param
+#                          selection_type=ROULETTE_WHEEL,
+#                          mutation_rate=0,
+#                          N_e=0,
+#                          s=0,
+#                          var_range=population_sizes,
+#                          var_name=VAR_POPULATION_SIZE)
 
 
 def quest_3():
@@ -495,8 +510,7 @@ def quest_6():
 
 def run_manager():
     # quest_1()
-    # quest_2()
-    # quest_3()
-    # quest_4()
+    quest_3()
+    quest_4()
     quest_5()
     quest_6()

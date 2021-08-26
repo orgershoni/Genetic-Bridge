@@ -34,6 +34,7 @@ def plot_triangle(coors_list, ax=None, title="", pts_x=None, pts_y=None,
 
     if path:
         plt.savefig(path)
+        plt.close()
         return
 
     if ax_was_none:
