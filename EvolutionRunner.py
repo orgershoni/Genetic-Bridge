@@ -216,8 +216,7 @@ def single_model_runner(generation_num, population_size, selection_type
         bridges = rest_after_mutations + list(elita).copy()
 
     txt = [r'$\mathbf{MODEL\:PARAMETERS}$', "\n"
-                                            r"$\mathit{Population\:size} :$" + str(
-        population_size),
+           r"$\mathit{Population\:size} :$" + str(population_size),
            r"$\mathit{Mutation\:rate} :$" + str(mutation_p),
            r"$\mathit{Elitism\:parameter}: N_e=$" + str(N_e),
            r"$\mathit{Selection\:type} :$" + selection_type,
@@ -227,6 +226,16 @@ def single_model_runner(generation_num, population_size, selection_type
         [min_dist_from_target, mean_dist_from_target,
          unique_variants_num, txt])
 
+
+def refactor_txt(var_name, txt: list):
+    if var_name == VAR_S_TOURNAMENT:
+        del txt[5]
+    elif var_name == VAR_MUTATION_P:
+        del txt[2]
+    elif var_name == VAR_POPULATION_SIZE:
+        del txt[1]
+
+    return '\n'.join(txt)
 
 def unpack_results(tuple4way):
     data = [tuple4way[0], tuple4way[1], tuple4way[2]]
@@ -348,17 +357,6 @@ def rearrange_data(data):
             new_data.append(axis_data)
 
         return new_data
-
-
-def refactor_txt(var_name, txt: list):
-    if var_name == VAR_S_TOURNAMENT:
-        del txt[6]
-    elif var_name == VAR_MUTATION_P:
-        del txt[2]
-    elif var_name == VAR_POPULATION_SIZE:
-        del txt[1]
-
-    return '\n'.join(txt)
 
 
 def plot_results(data, variable_ranges, var_name, txt):
@@ -487,9 +485,9 @@ def quest_6():
                          var_name=VAR_GENERATION_NUMBER)
 
 def run_manager():
-    quest_1()
-    quest_2()
-    quest_3()
-    quest_4()
+    # quest_1()
+    # quest_2()
+    # quest_3()
+    # quest_4()
     quest_5()
     quest_6()
