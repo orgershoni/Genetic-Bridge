@@ -209,11 +209,18 @@ def single_model_runner(generation_num, population_size, selection_type
                                      title=f"distance from target: {distance_from_target}")
 
         # run evolution
-        elita = apply_elitism_func(bridges.copy(), N_e)
-        rest = apply_selection(bridges.copy(), selection_type, N_e, s)
+        bridges_before_this_generation = deepcopy(bridges)
+        try :
+            elita = apply_elitism_func(bridges.copy(), N_e)
+            rest = apply_selection(bridges.copy(), selection_type, N_e, s)
 
-        rest_after_mutations = list(create_mutations(rest.copy(), mutation_p))
-        bridges = rest_after_mutations + list(elita).copy()
+            rest_after_mutations = list(create_mutations(rest.copy(), mutation_p))
+            bridges = rest_after_mutations + list(elita).copy()
+
+        except Exception as e:
+            print(f"Exception occurred during generation {idx}."
+                  f" Skipping this generation. Error info : {e}")
+            bridges = bridges_before_this_generation
 
     txt = [r'$\mathbf{MODEL\:PARAMETERS}$', "\n"
            r"$\mathit{Population\:size} :$" + str(population_size),
@@ -273,11 +280,13 @@ def generate_path(generation_num, population_size, selection_type,
     dir_name_str = '__'.join(dir_name)
     parent_dir_name = path.join(PLOT_OUTPUT_DIR, dir_name_str)
     if var_name is None:
-        os.makedirs(parent_dir_name)
+        if not path.exists(parent_dir_name):
+            os.makedirs(parent_dir_name)
     else:
         for var in var_range:
             inner_dir = path.join(parent_dir_name, str(var))
-            os.makedirs(inner_dir)
+            if not path.exists(inner_dir):
+                os.makedirs(inner_dir)
 
     return parent_dir_name
 
@@ -446,7 +455,7 @@ def quest_3():
 
 def quest_4():
     # Question 4
-    mutation_rates = [0.1, 0.05, 0.025]
+    mutation_rates = [0.05, 0.025]
     plot_results_manager(generation_num=100,
                          population_size=300,
                          selection_type=ROULETTE_WHEEL,
