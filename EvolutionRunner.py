@@ -12,7 +12,7 @@ ROULETTE_WHEEL = "Roulette Wheel"
 FITNESS_BY_LENGTH = "Adaptive Evolution"
 EQUAL_FITNESS = "Neutral Evolution"
 VAR_S_TOURNAMENT = "s"
-PLOT_OUTPUT_DIR = "BridgeEvolutionPlots"
+PLOT_OUTPUT_DIR = "BridgeEvolutionPlots\\no_blocks_variance"
 
 VAR_MUTATION_P = "Mutation Rate"
 VAR_POPULATION_SIZE = "Population size"
@@ -33,7 +33,7 @@ def create_random_building_block():
     ang = randint(20, 90)
     edge1 = randint(1, MAX_EDGE_LEN_VAL)
     edge2 = randint(1, MAX_EDGE_LEN_VAL)
-    tmp_triangle.generate_triangle(ang, edge1, edge2)
+    tmp_triangle.generate_triangle(60, 5, 5)
     return BuildingBlockHolder(tmp_triangle)
 
 
@@ -49,7 +49,7 @@ class BuildingBlockPopulation:
             self.size)]
 
     def get_random_building_block(self):
-        return deepcopy(random.choice(self.population))
+        return deepcopy(self.population[0])
 
 
 class BridgesPopulation:
@@ -150,7 +150,7 @@ def bridge_mutation(genetic_bridge: GeneticBridge, p):
         size = max(1, size)     # size can't be smaller than 1
         genetic_bridge.change_bridge_size(size)
 
-    genetic_bridge = blocks_mutation(genetic_bridge, p)
+    # genetic_bridge = blocks_mutation(genetic_bridge, p)
     return pairs_mutation(genetic_bridge, p)
 
 
@@ -510,8 +510,8 @@ def quest_6():
                          var_name=VAR_GENERATION_NUMBER)
 
 def run_manager():
-    # quest_1()
-    # quest_3()
-    # quest_4()
+    quest_1()
+    quest_3()
+    quest_4()
     quest_5()
     quest_6()
