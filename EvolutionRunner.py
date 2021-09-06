@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 import os.path as path
 import os
 import tqdm
+import threading
 
 TOURNAMENT = "Tournament"
 ROULETTE_WHEEL = "Roulette Wheel"
 FITNESS_BY_LENGTH = "Adaptive Evolution"
 EQUAL_FITNESS = "Neutral Evolution"
 VAR_S_TOURNAMENT = "s"
-PLOT_OUTPUT_DIR = "BridgeEvolutionPlots\\no_blocks_variance"
+PLOT_OUTPUT_DIR = "BridgeEvolutionPlots\\no_blocks_variance_fix_1.0.0"
 
 VAR_MUTATION_P = "Mutation Rate"
 VAR_POPULATION_SIZE = "Population size"
@@ -49,7 +50,7 @@ class BuildingBlockPopulation:
             self.size)]
 
     def get_random_building_block(self):
-        return deepcopy(self.population[0])
+        return create_random_building_block()
 
 
 class BridgesPopulation:
@@ -62,19 +63,49 @@ class BridgesPopulation:
     def init_bridges(self, bb_population):
         for _ in range(self.size):
             bridge = GeneticBridge(bb_population)
-            bridge.set_dist_to_target_point_fitness()
+            # bridge.set_dist_to_target_point_fitness()
             self.population.append(bridge)
 
 
+def gather_bridges(bridges: List[GeneticBridge]):
+
+    bridges_count = dict()
+    bridges_fitness = dict()
+    min_fitness = 1000
+    for bridge in bridges:
+        if bridge not in bridges_count.keys():
+            bridges_count[bridge] = 0
+
+            fitness = bridge.get_fitness()
+            bridges_fitness[bridge] = fitness
+
+            if fitness < min_fitness:
+                min_fitness = fitness
+
+        bridges_count[bridge] += 1
+
+    min_fitness = min(0, min_fitness)
+    weights = []
+    for bridge in bridges_count.keys():
+        actual_fitness = bridges_fitness[bridge] + abs(min_fitness)
+        overall_in_population = actual_fitness * bridges_count[bridge]
+        weights.append(overall_in_population)
+
+    return weights
+
 def roulette_wheel_selection(bridges: list,
                              population_size):
-    fitness_array = [bridge.get_fitness() for bridge in
-                     bridges]
-    sum_of_fitness = sum(fitness_array)
-    weights = [fitness / sum_of_fitness for fitness in fitness_array]
+    fitness_array = np.array([bridge.get_fitness() for bridge in
+                     bridges])
+    min_val = fitness_array.min()
+    if min_val < 0:
+        fitness_array += np.abs(min_val)
+
+    # fitness_array = np.exp(fitness_array)
+    weights = list(fitness_array / fitness_array.sum())
 
     return deepcopy(random.choices(bridges, k=population_size,
-                                   weights=weights))
+                                   weights=weights)), gather_bridges(bridges)
 
 
 def mutate_triangle(triangle_holder: BuildingBlockHolder):
@@ -104,41 +135,61 @@ def mutate_triangle(triangle_holder: BuildingBlockHolder):
 
 def blocks_mutation(genetic_bridge: GeneticBridge, p):
     mutated_blocks = []
-    for trig_holder in genetic_bridge.ordered_building_blocks:
+    for trig_holder in genetic_bridge.blocks:
         if random.random() < p:
             mutated_blocks.append(mutate_triangle(trig_holder))
         else:
             mutated_blocks.append(trig_holder)
 
-    genetic_bridge.ordered_building_blocks = mutated_blocks
+    genetic_bridge.blocks = mutated_blocks
     return deepcopy(genetic_bridge)
 
 
 def pairs_mutation(genetic_bridge: GeneticBridge, p):
-    mutated_pairs = []
-    changed_indices = [-1] * len(genetic_bridge.edges_pairs)
 
-    for idx in range(len(genetic_bridge.edges_pairs)):
+    if random.random() <  p:
+        mutated_pairs = genetic_bridge.edges_pairs.copy()
+        changed_indices = [-1] * len(genetic_bridge.edges_pairs)
 
-        pair = deepcopy(genetic_bridge.edges_pairs[idx])
-        if random.random() < p:  # make mutation
-            which_edge = random.randint(0, 1)
-            other_edge = int(not bool(which_edge))  # opposite position
+        idx = randint(0, len(genetic_bridge.edges_pairs) - 1)
 
-            new_edge = random.randint(0, 2)
-            constant_edge = pair[other_edge]
+        pair = genetic_bridge.edges_pairs[idx]
+        which_edge = random.randint(0, 1)
+        other_edge = int(not bool(which_edge))  # opposite position
 
-            new_pair = [0] * 2
-            new_pair[other_edge] = constant_edge
-            new_pair[which_edge] = new_edge
+        new_edge = random.randint(0, 2)
+        constant_edge = pair[other_edge]
 
-            pair = tuple(new_pair)
-            changed_indices[idx] = which_edge
+        new_pair = [0] * 2
+        new_pair[other_edge] = constant_edge
+        new_pair[which_edge] = new_edge
 
-        mutated_pairs.append(pair)
+        pair = tuple(new_pair)
+        changed_indices[idx] = which_edge
+        mutated_pairs[idx] = pair
+        genetic_bridge.set_new_pairs(mutated_pairs, changed_indices)
 
-    genetic_bridge.set_new_pairs(mutated_pairs, changed_indices)
-    return deepcopy(genetic_bridge)
+    # for idx in range(len(genetic_bridge.edges_pairs)):
+    #
+    #     pair = genetic_bridge.edges_pairs[idx]
+    #     if random.random() < p:  # make mutation
+    #         which_edge = random.randint(0, 1)
+    #         other_edge = int(not bool(which_edge))  # opposite position
+    #
+    #         new_edge = random.randint(0, 2)
+    #         constant_edge = pair[other_edge]
+    #
+    #         new_pair = [0] * 2
+    #         new_pair[other_edge] = constant_edge
+    #         new_pair[which_edge] = new_edge
+    #
+    #         pair = tuple(new_pair)
+    #         changed_indices[idx] = which_edge
+    #
+    #     mutated_pairs.append(pair)
+    #
+    # genetic_bridge.set_new_pairs(mutated_pairs, changed_indices)
+    return genetic_bridge
 
 
 def bridge_mutation(genetic_bridge: GeneticBridge, p):
@@ -151,6 +202,7 @@ def bridge_mutation(genetic_bridge: GeneticBridge, p):
         genetic_bridge.change_bridge_size(size)
 
     # genetic_bridge = blocks_mutation(genetic_bridge, p)
+    # return genetic_bridge
     return pairs_mutation(genetic_bridge, p)
 
 
@@ -192,6 +244,10 @@ def single_model_runner(generation_num, population_size, selection_type
     BB_population = BuildingBlockPopulation(population_size)
     bridges = BridgesPopulation(population_size, BB_population).population
 
+    pie_path = path.join(output_path, "distribution")
+    if not path.exists(pie_path):
+        os.makedirs(path.join(output_path, "distribution"))
+
     min_dist_from_target = []
     mean_dist_from_target = []
     unique_variants_num = []
@@ -211,6 +267,7 @@ def single_model_runner(generation_num, population_size, selection_type
           "\nSelection type :" + selection_type +
           "\nTournament parameter: s=" + str(s) + "\n")
 
+    prev_bridge = bridges[0]
     for idx in tqdm.tqdm(range(generation_num)):
         # gather stats
 
@@ -223,22 +280,36 @@ def single_model_runner(generation_num, population_size, selection_type
 
         idx_of_max_fitness = np.argmin(dists)
         best_bridge = bridges[idx_of_max_fitness]
-        best_bridge.plot_with_target(path=f'{output_path}\\after_{idx}_gens',
-                                     title=f"distance from target: {distance_from_target}")
+
+        if hash(best_bridge) != hash(prev_bridge):
+            best_bridge.plot_with_target(path=f'{output_path}\\after_{idx}_gens',
+                                         title=f"distance from target: {distance_from_target}")
+
+            prev_bridge = deepcopy(best_bridge)
 
         # run evolution
-        bridges_before_this_generation = deepcopy(bridges)
+        bridges_before_this_generation = bridges.copy()
         try :
             elita = apply_elitism_func(bridges.copy(), N_e)
-            rest = apply_selection(bridges.copy(), selection_type, N_e, s)
+            rest, weights = apply_selection(bridges.copy(), selection_type, N_e, s)
 
-            rest_after_mutations = list(create_mutations(rest.copy(), mutation_p))
+            rest_after_mutations = list(create_mutations(rest.copy(),
+                                                          mutation_p))
             bridges = rest_after_mutations + list(elita).copy()
+
+            # plotting
+            plt.figure()
+            labels = np.arange(len(weights)) + 1
+            plt.pie(np.array(weights), labels=labels)
+            plt.savefig(f'{output_path}\\distribution\\after_{idx}_gens')
+            plt.close()
 
         except Exception as e:
             print(f"Exception occurred during generation {idx}."
                   f" Skipping this generation. Error info : {e}")
             bridges = bridges_before_this_generation
+
+
 
     print("Evolution finished")
     print("#" * 100)
@@ -471,7 +542,7 @@ def quest_3():
 
 def quest_4():
     # Question 4
-    mutation_rates = [0.05, 0.025]
+    mutation_rates = [0.1, 0.2, 0.5]
     plot_results_manager(generation_num=100,
                          population_size=300,
                          selection_type=ROULETTE_WHEEL,
@@ -492,26 +563,55 @@ def quest_5():
                                             # var_range param
                          N_e=30,
                          s=0,
-                         var_range=mutation_rates,
-                         var_name=VAR_MUTATION_P)
+                         var_range=mutation_rates, var_name=VAR_MUTATION_P)
 
 
 def quest_6():
     # Question 5
-    generations_number = [200, 500, 100]
-    plot_results_manager(generation_num=100,
+    generations_number = [200, 500, 1000]
+    plot_results_manager(generation_num=0,
                          population_size=300,
                          selection_type=ROULETTE_WHEEL,
-                         mutation_rate=0.4,   # Would be filled using
+                         mutation_rate=0.2,   # Would be filled using
                                               # var_range param
-                         N_e=40,
+                         N_e=30,
                          s=0,
                          var_range=generations_number,
                          var_name=VAR_GENERATION_NUMBER)
 
+
+def quest_7():
+    # Question 5
+    mutation_rates = [0.1, 0.2, 0.5]
+    plot_results_manager(generation_num=2000,
+                         population_size=300,
+                         selection_type=ROULETTE_WHEEL,
+                         mutation_rate=0,   # Would be filled using
+                                              # var_range param
+                         N_e=30,
+                         s=0,
+                         var_range=mutation_rates,
+                         var_name=VAR_MUTATION_P)
+
+def quest_8():
+    # Question 5
+    s = [2, 3, 4]
+    plot_results_manager(generation_num=500,
+                         population_size=300,
+                         selection_type=TOURNAMENT,
+                         mutation_rate=0.1,   # Would be filled using
+                                              # var_range param
+                         N_e=30,
+                         s=0,
+                         var_range=s,
+                         var_name=VAR_S_TOURNAMENT)
+
 def run_manager():
-    quest_1()
-    quest_3()
-    quest_4()
-    quest_5()
-    quest_6()
+
+    # quest_1()
+    # quest_3()
+    # quest_4()
+    # quest_5()
+    # quest_6()
+    quest_7()
+    # quest_8()

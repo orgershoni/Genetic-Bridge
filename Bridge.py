@@ -22,7 +22,6 @@ BB_NUM_FITNESS_CONSTANT = DIST_FITNESS_CONSTANT / MAX_TRIANGLE_AREA
 FIRST_OF_PAIR = 0
 SECOND_OF_PAIR = 0
 
-
 class GeneticBridge:
 
     def __init__(self, building_block_population):  # random init
@@ -30,7 +29,7 @@ class GeneticBridge:
         self.population = building_block_population
         self.size = randint(10, MAX_NUM_OF_TRIANGLES_INIT)
         self.building_blocks = []
-        self.ordered_building_blocks = []
+        self.blocks = []
         self.edges_pairs = List[tuple]
         self.order = list(np.random.permutation(self.size))
 
@@ -44,6 +43,24 @@ class GeneticBridge:
         self.order_edges_in_pairs()
         self.generate_coordinates()
 
+    def __eq__(self, other):
+        if type(other) != GeneticBridge:
+            return False
+        else:
+            if len(other.edges_pairs) != self.edges_pairs:
+                return False
+            for idx in range(len(self.edges_pairs)):
+                this_pair = self.edges_pairs[idx]
+                other_pair = other.edges_pairs[idx]
+                if this_pair[0] != other_pair[0] or this_pair[1] != \
+                        other_pair[1]:
+                    return False
+
+            return True
+
+    def __hash__(self):
+        return hash(str(self.edges_pairs))
+
     def order_edges_in_pairs(self):
 
         self.edges_pairs = [None] * (self.size - 1)
@@ -53,10 +70,10 @@ class GeneticBridge:
 
     def order_by_permutation(self):
 
-        self.ordered_building_blocks = [None] * self.size
+        self.blocks = [None] * self.size
 
         for idx, building_blk_idx in enumerate(self.order):
-            self.ordered_building_blocks[idx] = self.building_blocks[
+            self.blocks[idx] = self.building_blocks[
                 building_blk_idx]  # TODO : copy the original triangle
 
     def get_legal_pairing(self, idx_of_1st_triangle):
@@ -81,19 +98,19 @@ class GeneticBridge:
 
         # since there isn't a neighbor on the right
         only_edge_1_relevant = \
-            idx_of_tri + 1 >= len(self.ordered_building_blocks)
+            idx_of_tri + 1 >= len(self.blocks)
 
         edge_of_1st, edge_of_2nd = pair
 
         is_edge_taken1 = \
-            self.ordered_building_blocks[idx_of_tri].is_edge_taken[
+            self.blocks[idx_of_tri].is_edge_taken[
                 edge_of_1st]
 
         if only_edge_1_relevant:
             return (edge_of_1st, FIRST_OF_PAIR) if is_edge_taken1 else (-1, -1)
 
-        is_edge_taken2 = self.ordered_building_blocks[idx_of_tri + 1
-                                                      ].is_edge_taken[
+        is_edge_taken2 = self.blocks[idx_of_tri + 1
+                                     ].is_edge_taken[
             edge_of_2nd]
 
         # print(f"edges taken in tri {idx_of_tri} /"
@@ -122,30 +139,30 @@ class GeneticBridge:
 
         edge_of_1st, edge_of_2nd = pair
 
-        self.ordered_building_blocks[idx_of_first_triangle].is_edge_taken[
+        self.blocks[idx_of_first_triangle].is_edge_taken[
             edge_of_1st] \
             = True
 
-        if idx_of_first_triangle + 1 < len(self.ordered_building_blocks):
-            self.ordered_building_blocks[
+        if idx_of_first_triangle + 1 < len(self.blocks):
+            self.blocks[
                 idx_of_first_triangle + 1].is_edge_taken[
                 edge_of_2nd] = True
 
     def generate_coordinates(self):
 
-        self.ordered_building_blocks[0].set_pivot()
-        prev_triangle = self.ordered_building_blocks[0]
-        for i in range(1, len(self.ordered_building_blocks), 1):
+        self.blocks[0].set_pivot()
+        prev_triangle = self.blocks[0]
+        for i in range(1, len(self.blocks), 1):
             edge1, edge2 = self.edges_pairs[i - 1]
-            self.ordered_building_blocks[i].align_to(prev_triangle, edge1,
-                                                     edge2, i)
+            self.blocks[i].align_to(prev_triangle, edge1,
+                                    edge2, i)
 
-            prev_triangle = self.ordered_building_blocks[i]
+            prev_triangle = self.blocks[i]
 
     def plot(self, indices_to_paint):
 
         coors_list = [triangle.get_coors() for triangle in
-                      self.ordered_building_blocks]
+                      self.blocks]
         end_x, end_y = self.get_end_point()
         utils.plot_triangle(coors_list, title=f"whole bridge",
                             pts_x=[end_x], pts_y=[end_y],
@@ -154,7 +171,7 @@ class GeneticBridge:
     def plot_with_target(self, path=None, title=""):
 
         coors_list = [triangle.get_coors() for triangle in
-                      self.ordered_building_blocks]
+                      self.blocks]
         end_x, end_y = self.get_end_point()
         utils.plot_triangle(coors_list, title=title,
                             pts_x=[end_x, TARGET_X], pts_y=[end_y,
@@ -164,7 +181,7 @@ class GeneticBridge:
     def plot_growth(self, indices_to_add=None):
 
         coors_list = [triangle.get_coors() for triangle in
-                      self.ordered_building_blocks]
+                      self.blocks]
         for i in range(1, len(coors_list) + 1):
             utils.plot_triangle(coors_list[:i], title=f"with {i} triangles",
                                 # path=f"random_bridge/full_bridge_{i}",
@@ -173,7 +190,7 @@ class GeneticBridge:
 
     def get_end_point(self):
 
-        last_triangle: BuildingBlockHolder = self.ordered_building_blocks[-1]
+        last_triangle: BuildingBlockHolder = self.blocks[-1]
         if len(self.edges_pairs) == 0:
             return np.array([0, 0])
 
@@ -186,30 +203,38 @@ class GeneticBridge:
 
         return last_triangle.get_coors()[end_coor_idx]
 
-    def set_dist_to_target_point_fitness(self):
+    # def set_dist_to_target_point_fitness(self):
 
-        def fitness_function():
-            dist_from_target = self.get_dist_from_target()
-            dist_value = max(0, DIST_FITNESS_CONSTANT - dist_from_target)
-            if dist_value < NUMBER_OF_BUILDING_BLOCKS_THRESH:
-                return BB_NUM_FITNESS_CONSTANT - self.size
-            else:
-                return dist_value
-
-        self.fitness_func = fitness_function
+        # def fitness_function():
+        #     dist_from_target = self.get_dist_from_target()
+        #     if dist_from_target < NUMBER_OF_BUILDING_BLOCKS_THRESH:
+        #         print(f"Entered the sweet spot with dist {dist_from_target}")
+        #         return BB_NUM_FITNESS_CONSTANT - self.size
+        #     else:
+        #         return DIST_FITNESS_CONSTANT - dist_from_target
+        #
+        # self.fitness_func = fitness_function
 
     def get_dist_from_target(self):
         return np.linalg.norm(TARGET_POINT - self.get_end_point())
 
     def get_fitness(self):
-        return self.fitness_func()
+
+        dist_from_target = self.get_dist_from_target()
+        if dist_from_target < NUMBER_OF_BUILDING_BLOCKS_THRESH:
+            print(f"Entered the sweet spot with dist {dist_from_target}")
+            protection_offset = (DIST_FITNESS_CONSTANT - dist_from_target) *\
+                                1.5
+            return protection_offset + BB_NUM_FITNESS_CONSTANT - self.size
+        else:
+            return DIST_FITNESS_CONSTANT - dist_from_target
 
     def remove_pair(self, idx):
 
         edge_of_1st, edge_of_2nd = self.edges_pairs[idx]
-        self.ordered_building_blocks[idx].is_edge_taken[edge_of_1st] = \
+        self.blocks[idx].is_edge_taken[edge_of_1st] = \
             False
-        self.ordered_building_blocks[idx + 1].is_edge_taken[edge_of_2nd] = \
+        self.blocks[idx + 1].is_edge_taken[edge_of_2nd] = \
             False
 
     def random_new_edge(self, exclude):
@@ -226,7 +251,7 @@ class GeneticBridge:
         edge_to_remove = pair[which_one]
 
         triangle_idx = pair_idx + which_one
-        self.ordered_building_blocks[triangle_idx].is_edge_taken[
+        self.blocks[triangle_idx].is_edge_taken[
             edge_to_remove] = False
 
         new_pair[which_one] = new_edge
@@ -286,12 +311,12 @@ class GeneticBridge:
                                position: int):
 
         # update building block
-        self.ordered_building_blocks.insert(position, building_block)
+        self.blocks.insert(position, building_block)
 
         # update pair information
         if position - 1 >= len(self.edges_pairs):
             pair = self.get_legal_pairing(
-                len(self.ordered_building_blocks) - 1)
+                len(self.blocks) - 1)
             self.edges_pairs.append(pair)
             self.update_pair(pair, position - 1, position - 1)
             return
@@ -319,7 +344,7 @@ class GeneticBridge:
             str_to_dbg = 'shrinkage'
 
 
-        if len(self.ordered_building_blocks) == len(self.edges_pairs):
+        if len(self.blocks) == len(self.edges_pairs):
             print(f"bad resize : #of blocks :{new_size},"
                   f"             # should have {new_size - 1} pairs."
                   f"             Actual size is {len(self.edges_pairs)}"
@@ -340,11 +365,11 @@ class GeneticBridge:
 
         # remove from bb list
         new_bb_list = []
-        for idx, bb in enumerate(self.ordered_building_blocks):
+        for idx, bb in enumerate(self.blocks):
             if idx not in indices_to_remove:
                 new_bb_list.append(bb)
 
-        self.ordered_building_blocks = new_bb_list
+        self.blocks = new_bb_list
 
         # remove from tuples list
         for idx in indices_to_remove:
@@ -383,7 +408,7 @@ class GeneticBridge:
 
     def align_taken_edges(self):
 
-        for idx, bb in enumerate(self.ordered_building_blocks):
+        for idx, bb in enumerate(self.blocks):
 
             bb.is_edge_taken = [False] * 3
 
