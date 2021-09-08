@@ -31,9 +31,14 @@ PARENT_PLOT_PATH = ""
 
 def create_random_building_block():
     tmp_triangle = BuildingBlock()
+
+    # this code remains unused after moving to stage 2 (no variance in blocks)
+    # can be commented in for applying variance into the model
     ang = randint(20, 90)
     edge1 = randint(1, MAX_EDGE_LEN_VAL)
     edge2 = randint(1, MAX_EDGE_LEN_VAL)
+    ##
+
     tmp_triangle.generate_triangle(60, 5, 5)
     return BuildingBlockHolder(tmp_triangle)
 
@@ -63,7 +68,6 @@ class BridgesPopulation:
     def init_bridges(self, bb_population):
         for _ in range(self.size):
             bridge = GeneticBridge(bb_population)
-            # bridge.set_dist_to_target_point_fitness()
             self.population.append(bridge)
 
 
@@ -101,13 +105,13 @@ def roulette_wheel_selection(bridges: list,
     if min_val < 0:
         fitness_array += np.abs(min_val)
 
-    # fitness_array = np.exp(fitness_array)
     weights = list(fitness_array / fitness_array.sum())
 
     return deepcopy(random.choices(bridges, k=population_size,
                                    weights=weights)), gather_bridges(bridges)
 
 
+# this function remained unused in when moving to stage 2 simulations
 def mutate_triangle(triangle_holder: BuildingBlockHolder):
     triangle = triangle_holder.triangle
 
@@ -132,7 +136,7 @@ def mutate_triangle(triangle_holder: BuildingBlockHolder):
 
     return BuildingBlockHolder(mutated_triangle)
 
-
+# this function remained unused in when moving to stage 2 simulations
 def blocks_mutation(genetic_bridge: GeneticBridge, p):
     mutated_blocks = []
     for trig_holder in genetic_bridge.blocks:
@@ -147,7 +151,7 @@ def blocks_mutation(genetic_bridge: GeneticBridge, p):
 
 def pairs_mutation(genetic_bridge: GeneticBridge, p):
 
-    if random.random() <  p:
+    if random.random() < p:
         mutated_pairs = genetic_bridge.edges_pairs.copy()
         changed_indices = [-1] * len(genetic_bridge.edges_pairs)
 
@@ -169,26 +173,6 @@ def pairs_mutation(genetic_bridge: GeneticBridge, p):
         mutated_pairs[idx] = pair
         genetic_bridge.set_new_pairs(mutated_pairs, changed_indices)
 
-    # for idx in range(len(genetic_bridge.edges_pairs)):
-    #
-    #     pair = genetic_bridge.edges_pairs[idx]
-    #     if random.random() < p:  # make mutation
-    #         which_edge = random.randint(0, 1)
-    #         other_edge = int(not bool(which_edge))  # opposite position
-    #
-    #         new_edge = random.randint(0, 2)
-    #         constant_edge = pair[other_edge]
-    #
-    #         new_pair = [0] * 2
-    #         new_pair[other_edge] = constant_edge
-    #         new_pair[which_edge] = new_edge
-    #
-    #         pair = tuple(new_pair)
-    #         changed_indices[idx] = which_edge
-    #
-    #     mutated_pairs.append(pair)
-    #
-    # genetic_bridge.set_new_pairs(mutated_pairs, changed_indices)
     return genetic_bridge
 
 
@@ -201,8 +185,8 @@ def bridge_mutation(genetic_bridge: GeneticBridge, p):
         size = max(1, size)     # size can't be smaller than 1
         genetic_bridge.change_bridge_size(size)
 
+    # uncomment this for applying blocks mutations
     # genetic_bridge = blocks_mutation(genetic_bridge, p)
-    # return genetic_bridge
     return pairs_mutation(genetic_bridge, p)
 
 
@@ -259,6 +243,7 @@ def single_model_runner(generation_num, population_size, selection_type
            r"$\mathit{Selection\:type} :$" + selection_type,
            r"$\mathit{Tournament\:parameter}: s=$" + str(s)]
 
+    # verbose prints
     print("#" * 100)
     print("Started evolution simulation with the following params :" +
           "\nPopulation size :" + str(population_size) +
@@ -289,7 +274,7 @@ def single_model_runner(generation_num, population_size, selection_type
 
         # run evolution
         bridges_before_this_generation = bridges.copy()
-        try :
+        try:
             elita = apply_elitism_func(bridges.copy(), N_e)
             rest, weights = apply_selection(bridges.copy(), selection_type, N_e, s)
 
@@ -308,8 +293,6 @@ def single_model_runner(generation_num, population_size, selection_type
             print(f"Exception occurred during generation {idx}."
                   f" Skipping this generation. Error info : {e}")
             bridges = bridges_before_this_generation
-
-
 
     print("Evolution finished")
     print("#" * 100)
@@ -396,7 +379,7 @@ def plot_results_manager(generation_num, population_size, selection_type,
                                                 N_e=N_e, s=s,
                                                 output_path=output_path)
 
-    if var_name == VAR_S_TOURNAMENT:
+    elif var_name == VAR_S_TOURNAMENT:
 
         for var in var_range:
             output_path = path.join(PARENT_PLOT_PATH, str(var))
@@ -499,8 +482,9 @@ def combine_plots(axes, data, variable_range):
             ax.plot(to_plot, label=variable_range[j])
 
 
-def quest_1():
-    # Question 1 (What is neutral ?)
+### examples for simulations definitions ###
+
+def sim_1():
     population_sizes = [30, 100, 300]
     plot_results_manager(generation_num=100,
                          population_size=0,  # Would be filled using
@@ -513,22 +497,7 @@ def quest_1():
                          var_name=VAR_POPULATION_SIZE)
 
 
-# def quest_2():
-#     # Question 2
-#     population_sizes = [30, 100, 300]
-#     plot_results_manager(generation_num=100,
-#                          population_size=0,  # Would be filled using
-#                                              # var_range param
-#                          selection_type=ROULETTE_WHEEL,
-#                          mutation_rate=0,
-#                          N_e=0,
-#                          s=0,
-#                          var_range=population_sizes,
-#                          var_name=VAR_POPULATION_SIZE)
-
-
-def quest_3():
-    # Question 3
+def sim_2():
     s_vals = [2, 3, 4]
     plot_results_manager(generation_num=100,
                          population_size=100,
@@ -540,8 +509,7 @@ def quest_3():
                          var_range=s_vals, var_name=VAR_S_TOURNAMENT)
 
 
-def quest_4():
-    # Question 4
+def sim_3():
     mutation_rates = [0.1, 0.2, 0.5]
     plot_results_manager(generation_num=100,
                          population_size=300,
@@ -553,8 +521,7 @@ def quest_4():
                          var_range=mutation_rates, var_name=VAR_MUTATION_P)
 
 
-def quest_5():
-    # Question 5
+def sim_4():
     mutation_rates = [0.1, 0.2, 0.5]
     plot_results_manager(generation_num=100,
                          population_size=300,
@@ -566,22 +533,20 @@ def quest_5():
                          var_range=mutation_rates, var_name=VAR_MUTATION_P)
 
 
-def quest_6():
-    # Question 5
+def sim_5():
     generations_number = [200, 500, 1000]
-    plot_results_manager(generation_num=0,
+    plot_results_manager(generation_num=0,    # Would be filled using
+                                              # var_range param
                          population_size=300,
                          selection_type=ROULETTE_WHEEL,
-                         mutation_rate=0.2,   # Would be filled using
-                                              # var_range param
+                         mutation_rate=0.2,
                          N_e=30,
                          s=0,
                          var_range=generations_number,
                          var_name=VAR_GENERATION_NUMBER)
 
 
-def quest_7():
-    # Question 5
+def sim_6():
     mutation_rates = [0.1, 0.2, 0.5]
     plot_results_manager(generation_num=2000,
                          population_size=300,
@@ -593,25 +558,27 @@ def quest_7():
                          var_range=mutation_rates,
                          var_name=VAR_MUTATION_P)
 
-def quest_8():
-    # Question 5
+def sim_7():
     s = [2, 3, 4]
     plot_results_manager(generation_num=500,
                          population_size=300,
                          selection_type=TOURNAMENT,
-                         mutation_rate=0.1,   # Would be filled using
-                                              # var_range param
+                         mutation_rate=0.1,
                          N_e=30,
                          s=0,
                          var_range=s,
                          var_name=VAR_S_TOURNAMENT)
 
+
 def run_manager():
 
-    # quest_1()
-    # quest_3()
-    # quest_4()
-    # quest_5()
-    # quest_6()
-    quest_7()
-    # quest_8()
+    # The written simulations in functions sim_1(),...,sim_7() are subsets of
+    # simulation we have conducted during our projects
+
+    sim_1()
+    sim_2()
+    sim_3()
+    sim_4()
+    sim_5()
+    sim_6()
+    sim_7()

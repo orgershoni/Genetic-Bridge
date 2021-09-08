@@ -60,7 +60,8 @@ def find_bounding_box(list_coors, pts_x, pts_y):
 
     return max_x, min_x, max_y, min_y
 
-def first_ratio(N):
+
+def find_ratio(N):
 
     n_sqrt = np.sqrt(N)
     height = int(np.ceil(n_sqrt))
@@ -71,7 +72,7 @@ def first_ratio(N):
 
 def plot_N_times(list_to_plot, edge_pairs, path=None):
 
-    h, w = first_ratio(len(list_to_plot))
+    h, w = find_ratio(len(list_to_plot))
     _, axes = plt.subplots(ncols=w, nrows=h)
 
     for i in range(h):

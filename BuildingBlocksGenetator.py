@@ -1,7 +1,3 @@
-import math
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
 from utils import *
 
 TRIANGLE_FACTOR = 3
@@ -164,14 +160,6 @@ class BuildingBlockHolder:
                                               other_v1_idx, my_v1_idx,
                                               my_v2_idx)
 
-        # pts = self.__test_alignment(other_coors, other_v1_idx,
-        #                              other_v2_idx, try1_coors, try2_coors, debug_txt)
-        #
-        # original_order_pts = [None] * TRIANGLE_FACTOR
-        # original_order_pts[my_v1_idx] = pts[0]
-        # original_order_pts[my_v2_idx] = pts[1]
-        # original_order_pts[get_other_idx(my_v1_idx, my_v2_idx)] = pts[2]
-
         third_idx = get_other_idx(my_v1_idx, my_v2_idx)
         return self.reorder_and_return(coors, [my_v1_idx, my_v2_idx, third_idx])
 
@@ -258,18 +246,3 @@ def point_in_triangle2(A, B, C, P):
     if d < 0:
         u, v, d = -u, -v, -d
     return u >= 0 and v >= 0 and (u + v) <= d
-
-
-
-# TODO : bridge class - (make sure each triangle edge is used only once)
-#       -number of triangles
-#       -order of triangles  [new triangles are added at the end] - no
-#       mutations
-#       -connections between triangles (which edge is connected to
-#       the edge in the neighbor triangle)
-
-# TODO : evolution environment - don't forget crossover
-
-# TODO : while we have power:
-        # TODO : set fitness functions to triangles and bridges
-        # TODO : run the simulation and see if we succeeded creating a bridge

@@ -22,6 +22,7 @@ BB_NUM_FITNESS_CONSTANT = DIST_FITNESS_CONSTANT / MAX_TRIANGLE_AREA
 FIRST_OF_PAIR = 0
 SECOND_OF_PAIR = 0
 
+
 class GeneticBridge:
 
     def __init__(self, building_block_population):  # random init
@@ -74,7 +75,7 @@ class GeneticBridge:
 
         for idx, building_blk_idx in enumerate(self.order):
             self.blocks[idx] = self.building_blocks[
-                building_blk_idx]  # TODO : copy the original triangle
+                building_blk_idx]
 
     def get_legal_pairing(self, idx_of_1st_triangle):
 
@@ -113,20 +114,6 @@ class GeneticBridge:
                                      ].is_edge_taken[
             edge_of_2nd]
 
-        # print(f"edges taken in tri {idx_of_tri} /"
-        #       f" {len(self.ordered_building_blocks)} :"
-        #       f" {self.ordered_building_blocks[idx_of_tri].is_edge_taken}")
-        #
-        # if not only_edge_1_relevant:
-        #     print(f"edges taken in tri {idx_of_tri + 1} /  "
-        #           f"{len(self.ordered_building_blocks)} :"
-        #           f" "
-        #           f""
-        #           f""
-        #           f""
-        #           f"{self.ordered_building_blocks[idx_of_tri + 1].is_edge_taken}")
-
-        # print("#" * 50)
         if is_edge_taken1:
             return edge_of_1st, FIRST_OF_PAIR
         if is_edge_taken2:
@@ -203,18 +190,6 @@ class GeneticBridge:
 
         return last_triangle.get_coors()[end_coor_idx]
 
-    # def set_dist_to_target_point_fitness(self):
-
-        # def fitness_function():
-        #     dist_from_target = self.get_dist_from_target()
-        #     if dist_from_target < NUMBER_OF_BUILDING_BLOCKS_THRESH:
-        #         print(f"Entered the sweet spot with dist {dist_from_target}")
-        #         return BB_NUM_FITNESS_CONSTANT - self.size
-        #     else:
-        #         return DIST_FITNESS_CONSTANT - dist_from_target
-        #
-        # self.fitness_func = fitness_function
-
     def get_dist_from_target(self):
         return np.linalg.norm(TARGET_POINT - self.get_end_point())
 
@@ -222,7 +197,6 @@ class GeneticBridge:
 
         dist_from_target = self.get_dist_from_target()
         if dist_from_target < NUMBER_OF_BUILDING_BLOCKS_THRESH:
-            print(f"Entered the sweet spot with dist {dist_from_target}")
             protection_offset = (DIST_FITNESS_CONSTANT - dist_from_target) *\
                                 1.5
             return protection_offset + BB_NUM_FITNESS_CONSTANT - self.size
@@ -281,11 +255,6 @@ class GeneticBridge:
                 if pair_idx + 1 >= len(self.edges_pairs):
                     # ignore pair change is last block
                     return
-                    print(f"pair to add : {pair}")
-                    print(f"pair index : {pair_idx}")
-                    print(f"changed coor : {which_one_changed}")
-                    print(f"actual pair : {self.edges_pairs[pair_idx]}")
-                    exit(1)
 
                 other_pair = self.edges_pairs[pair_idx + 1]
                 self.replace_edge_in_pair(other_pair, pair_idx + 1,
@@ -351,6 +320,8 @@ class GeneticBridge:
                   f" occured during {str_to_dbg} of {growth_factor}")
             exit(1)
         self.generate_coordinates()
+
+        # uncomment this for debug
         # self.plot(idx)
 
     def handle_shrinkage(self, new_size):
@@ -359,11 +330,6 @@ class GeneticBridge:
         indices_to_remove = sorted(sample(range(self.size),
                                           bb_num_to_remove), reverse=True)
 
-        # self.plot(indices_to_remove)
-
-        # print(f"indices to remove {indices_to_remove}, out of {self.size}")
-
-        # remove from bb list
         new_bb_list = []
         for idx, bb in enumerate(self.blocks):
             if idx not in indices_to_remove:
@@ -393,14 +359,6 @@ class GeneticBridge:
             if rhs_pair is not None and lhs_pair is not None:
                 joint_pair = [tuple([lhs_pair[0], rhs_pair[1]])]
 
-            # print(f"len first half : {len(first_half)}. len 2nd half "
-            #       f"{len(second_half)}, overall: "
-            #       f"{len(first_half) + len(second_half) + 1}"
-            #       f". Should be : {len(self.edges_pairs) - 1}\n"
-            #       f"num pairs is {len(self.edges_pairs)} while split idx is "
-            #       f"{idx}. "
-            #       f"joint tuple length {len(joint_pair)}", file=sys.stderr)
-
             self.edges_pairs = first_half + joint_pair + second_half
 
         self.size = new_size
@@ -424,8 +382,6 @@ class GeneticBridge:
 
         num_to_add = new_size - self.size
         indices_to_add = sorted(sample(range(new_size), num_to_add))
-
-        # print(f"index_added = {indices_to_add} out of {new_size}")
 
         for position in indices_to_add:
             bb = self.population.get_random_building_block()
